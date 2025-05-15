@@ -1,0 +1,282 @@
+/* Basic Reset & Mobile First Defaults */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background-color: #f4f7f6;
+    padding: 10px;
+}
+
+.container {
+    max-width: 700px;
+    margin: 0 auto;
+    background-color: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.1);
+}
+
+header h1 {
+    text-align: center;
+    color: #0056b3;
+    margin-bottom: 20px;
+    font-size: 1.8em;
+}
+
+/* Tabs Navigation */
+.tabs {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #007bff;
+}
+
+.tab-button {
+    padding: 10px 15px;
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+    font-size: 0.9em;
+    color: #0056b3;
+    border-bottom: 3px solid transparent;
+    margin-right: 5px;
+    transition: background-color 0.3s, color 0.3s, border-bottom-color 0.3s;
+}
+.tab-button:hover { background-color: #e9ecef; }
+.tab-button.active { font-weight: bold; color: #007bff; border-bottom-color: #007bff; }
+
+/* Tab Content Sections */
+.tab-content { display: none; padding: 15px 0; }
+.tab-content.active { display: block; animation: fadeIn 0.5s; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.tab-content h2 {
+    color: #343a40;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    font-size: 1.5em;
+}
+.tab-content h3 {
+    color: #495057;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    font-size: 1.2em;
+}
+
+
+/* Form Styling */
+.form-group { margin-bottom: 18px; }
+.form-group label { display: block; margin-bottom: 6px; font-weight: 600; color: #495057; font-size: 0.95em; }
+.form-group input[type="text"],
+.form-group input[type="date"],
+.form-group input[type="number"],
+.form-group select,
+.form-group input[type="file"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    font-size: 1em;
+    background-color: #fff;
+}
+.form-group input[type="file"] { padding: 5px; }
+.form-group small { display: block; font-size: 0.8em; color: #6c757d; margin-top: 4px; }
+
+/* Score Input Group */
+.score-input-group { display: flex; gap: 15px; align-items: flex-end; }
+.score-team { flex: 1; }
+
+/* Fieldsets */
+fieldset { border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; border-radius: 5px; }
+legend { padding: 0 10px; font-weight: bold; color: #0056b3; }
+
+/* Old Player/Goalscorer Entries (will be phased out or restyled for goalscorers later) */
+.player-entry, .goalscorer-entry {
+    border: 1px dashed #e0e0e0;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 5px;
+    background-color: #fdfdfd;
+}
+.player-entry hr, .goalscorer-entry hr { margin: 10px 0 15px 0; border: 0; border-top: 1px solid #eee; }
+
+
+/* === NEW Player/Item Editor & List Styles === */
+.form-editor-container {
+    background-color: #f9f9f9;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    margin-bottom: 20px;
+}
+.form-editor-container h3 {
+    margin-top: 0;
+    color: #0056b3;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px; /* Spacing between buttons */
+    margin-top: 20px;
+    justify-content: flex-start; /* Align buttons to the start */
+}
+
+.item-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+.item-list li {
+    background-color: #fdfdfd;
+    border: 1px solid #e9ecef;
+    padding: 10px 15px;
+    margin-bottom: 8px;
+    border-radius: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap; /* Allow actions to wrap on very small screens */
+}
+
+.item-list li span { /* Player name and team */
+    flex-grow: 1;
+    margin-right: 10px; /* Space before action buttons */
+    font-size: 0.95em;
+}
+
+.item-list .item-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.item-list .item-actions button {
+    padding: 6px 10px;
+    font-size: 0.85em;
+}
+
+#no-players-message, #no-goalscorers-message { /* Will add goalscorer one later */
+    color: #6c757d;
+    text-align: center;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    margin-top: 10px;
+}
+
+
+/* Buttons General */
+button {
+    padding: 10px 18px;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.95em;
+    transition: background-color 0.2s ease-in-out, opacity 0.2s;
+}
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.button-primary, .add-button { /* Standard add/primary action button */
+    background-color: #007bff;
+    color: white;
+}
+.button-primary:hover, .add-button:hover { background-color: #0056b3; }
+
+.button-secondary { /* For cancel or less prominent actions */
+    background-color: #6c757d;
+    color: white;
+}
+.button-secondary:hover { background-color: #545b62; }
+
+
+.remove-player-btn, .remove-goalscorer-btn, /* For old system, can be reused for delete-btn */
+.delete-btn {
+    background-color: #dc3545;
+    color: white;
+}
+.remove-player-btn:hover, .remove-goalscorer-btn:hover,
+.delete-btn:hover { background-color: #c82333; }
+
+.edit-btn { /* Edit button in lists */
+    background-color: #ffc107; /* Amber/Yellow */
+    color: #212529;
+    border-color: #ffc107;
+}
+.edit-btn:hover { background-color: #e0a800; }
+
+
+#show-add-player-form-btn, #show-add-goalscorer-form-btn { /* Specific styling for the "Add New X" button */
+    margin-bottom: 20px; /* Space before the list or editor form */
+    display: inline-block; /* To respect margin */
+}
+
+
+/* Download Section */
+.download-section { margin-top: 30px; padding: 20px; text-align: center; background-color: #e9ecef; border-radius: 8px; }
+.download-section h2 { color: #343a40; margin-bottom: 10px; }
+.download-section p { margin-bottom: 15px; color: #495057; }
+.primary-button#download-btn { /* Ensure download button has primary style if not covered by .button-primary */
+    background-color: #007bff; color: white; font-size: 1.1em; padding: 12px 25px;
+}
+.primary-button#download-btn:hover { background-color: #0056b3; }
+
+/* Footer */
+footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 0.9em; color: #6c757d; }
+
+.player-list-columns {
+    display: flex;
+    flex-direction: column; /* Stack columns on mobile */
+    gap: 20px; /* Space between columns when side-by-side, or items when stacked */
+    margin-top: 20px;
+}
+
+.player-list-column {
+    flex: 1; /* Each column tries to take equal space */
+    background-color: #f8f9fa; /* Light background for each column */
+    padding: 15px;
+    border-radius: 5px;
+    border: 1px solid #e9ecef;
+}
+
+.player-list-column h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+    color: #0056b3;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 8px;
+}
+
+/* Make columns side-by-side on wider screens */
+@media (min-width: 768px) { /* Adjust breakpoint as needed */
+    .player-list-columns {
+        flex-direction: row; /* Columns side-by-side */
+    }
+}
+
+/* Style for placeholder player items (optional) */
+.item-list li.is-placeholder span {
+    font-style: italic;
+    color: #6c757d; /* Dimmer color for placeholder names */
+}
+
+/* Responsive Adjustments */
+@media (min-width: 600px) {
+    body { padding: 20px; }
+    .container { padding: 25px; }
+    header h1 { font-size: 2.2em; }
+    .tab-button { font-size: 1em; padding: 12px 20px; }
+
+    .item-list li {
+        flex-wrap: nowrap; /* Prevent wrapping on larger screens */
+    }
+}

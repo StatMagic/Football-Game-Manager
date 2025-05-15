@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Management Tool</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Game Manager</h1>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab-button active" data-tab="game-setup">1. Game Setup</button>
+            <button class="tab-button" data-tab="player-setup">2. Player Setup</button>
+            <button class="tab-button" data-tab="game-submission">3. Game Submission</button>
+        </nav>
+
+        <main>
+            <!-- STAGE 1: Game Setup -->
+            <section id="game-setup" class="tab-content active">
+                <h2>Game Setup</h2>
+                <form id="game-setup-form">
+                    <div class="form-group">
+                        <label for="match-category">Match Category</label>
+                        <input type="text" id="match-category" name="match-category" value="Recreational">
+                    </div>
+                    <div class="form-group">
+                        <label for="match-date">Date</label>
+                        <input type="date" id="match-date" name="match-date">
+                    </div>
+                    <div class="form-group">
+                        <label for="match-type">Match Type</label>
+                        <select id="match-type" name="match-type">
+                            <option value="3v3">3v3</option>
+                            <option value="4v4">4v4</option>
+                            <option value="5v5">5v5</option>
+                            <option value="6v6">6v6</option>
+                            <option value="7v7">7v7</option>
+                            <option value="8v8">8v8</option>
+                            <option value="9v9">9v9</option>
+                            <option value="10v10">10v10</option>
+                            <option value="11v11" selected>11v11</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="match-duration">Match Duration (minutes)</label>
+                        <input type="number" id="match-duration" name="match-duration" min="1" placeholder="e.g., 90">
+                    </div>
+                    <div class="form-group">
+                        <label for="team1-name">Team 1 Name</label>
+                        <input type="text" id="team1-name" name="team1-name" value="Team A">
+                    </div>
+                    <div class="form-group">
+                        <label for="team2-name">Team 2 Name</label>
+                        <input type="text" id="team2-name" name="team2-name" value="Team B">
+                    </div>
+                    <div class="form-group">
+                        <label for="age-category">Average Age Category</label>
+                        <select id="age-category" name="age-category">
+                            <option value="U7">U7</option>
+                            <option value="U9">U9</option>
+                            <option value="U12">U12</option>
+                            <option value="U14">U14</option>
+                            <option value="U16">U16</option>
+                            <option value="U19">U19</option>
+                            <option value="20-30">20-30</option>
+                            <option value="30+">30+</option>
+                        </select>
+                    </div>
+                </form>
+            </section>
+
+            <!-- STAGE 2: Player Setup -->
+            <section id="player-setup" class="tab-content">
+                <h2>Player Setup</h2>
+                <div id="player-form-container" class="form-editor-container" style="display: none;">
+                    <h3 id="player-form-title">Add New Player</h3>
+                    <form id="single-player-form">
+                        <input type="hidden" id="player-edit-id" value="">
+                        <div class="form-group">
+                            <label for="single-player-name">Player Name</label>
+                            <input type="text" id="single-player-name" placeholder="Enter player name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="single-player-team">Player Team</label>
+                            <select id="single-player-team" required>
+                                <option value="">Select Team</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="single-player-video">360 Video (Optional)</label>
+                            <input type="file" id="single-player-video" accept="video/*">
+                            <small>Current file: <span id="current-player-video-filename">None</span></small>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" id="save-player-btn" class="button-primary">Save Player</button>
+                            <button type="button" id="cancel-player-edit-btn" class="button-secondary">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+                <button type="button" id="show-add-player-form-btn" class="add-button">Add New Player</button>
+
+                <div id="player-list-display-container" class="player-list-columns">
+                    <div class="player-list-column">
+                        <h3 id="player-list-team1-name">Team A Players</h3>
+                        <ul id="players-list-team1-ul" class="item-list">
+                            {/* Players for Team 1 will be inserted here */}
+                        </ul>
+                        <p id="no-team1-players-message" style="display: none;">No players for Team A yet.</p>
+                    </div>
+                    <div class="player-list-column">
+                        <h3 id="player-list-team2-name">Team B Players</h3>
+                        <ul id="players-list-team2-ul" class="item-list">
+                            {/* Players for Team 2 will be inserted here */}
+                        </ul>
+                        <p id="no-team2-players-message" style="display: none;">No players for Team B yet.</p>
+                    </div>
+                </div>
+                <p id="no-players-overall-message" style="display: block;">Select a Match Type to generate players or add them manually.</p>
+            </section>
+
+            <!-- STAGE 3: Game Submission -->
+            <section id="game-submission" class="tab-content">
+                <h2>Game Submission</h2>
+                <form id="game-submission-form">
+                    <fieldset>
+                        <legend>Final Score</legend>
+                        <div class="score-input-group">
+                            <div class="form-group score-team">
+                                <label for="team1-score" id="label-team1-score">Team A Score</label>
+                                <input type="number" id="team1-score" name="team1-score" min="0" value="0">
+                            </div>
+                            <div class="form-group score-team">
+                                <label for="team2-score" id="label-team2-score">Team B Score</label>
+                                <input type="number" id="team2-score" name="team2-score" min="0" value="0">
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend>Goalscorers (Optional)</legend>
+                        
+                        <div id="goalscorer-form-container" class="form-editor-container" style="display: none;">
+                            <h3 id="goalscorer-form-title">Add New Goalscorer</h3>
+                            <input type="hidden" id="goalscorer-edit-id" value="">
+                            <div class="form-group">
+                                <label for="single-goalscorer-player">Player</label>
+                                <select id="single-goalscorer-player" required>
+                                    <option value="">Select Player</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="single-goalscorer-goals">Number of Goals</label>
+                                <input type="number" id="single-goalscorer-goals" min="1" value="1" required>
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" id="save-goalscorer-btn" class="button-primary">Save Goalscorer</button>
+                                <button type="button" id="cancel-goalscorer-edit-btn" class="button-secondary">Cancel</button>
+                            </div>
+                        </div>
+
+                        <button type="button" id="show-add-goalscorer-form-btn" class="add-button">Add Goalscorer</button>
+
+                        <div id="goalscorer-list-container">
+                            <h3>Scored Goals</h3>
+                            <ul id="goalscorers-list-ul" class="item-list"></ul>
+                            <p id="no-goalscorers-message" style="display: none;">No goalscorers added yet.</p>
+                        </div>
+                    </fieldset>
+
+                    <div class="form-group">
+                        <label for="game-link-video">Game Video</label>
+                        <input type="file" id="game-link-video" name="game-link-video" accept="video/*">
+                        <small>Upload the full game video. Max file size: 500MB (example)</small>
+                    </div>
+                </form>
+            </section>
+        </main>
+
+        <section class="download-section">
+            <h2>Download Data</h2>
+            <p>Click here to download all entered game data as a zip file.</p>
+            <button id="download-btn" class="primary-button">Download Game Data</button>
+        </section>
+
+        <footer>
+            <p>© 2024 Game Management Tool</p>
+        </footer>
+    </div>
+</body>
+</html>
