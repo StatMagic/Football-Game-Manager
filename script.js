@@ -7,8 +7,8 @@ let currentlyEditingGoalscorerId = null;
 // --- DOM Element Variables ---
 let tabButtons, tabContents;
 let gameSetupForm, matchCategoryInput, matchDateInput, matchTypeSelect, matchDurationInput, team1NameInput, team2NameInput, ageCategorySelect;
-let playerFormContainer, playerFormTitle, singlePlayerForm, playerEditIdInput, singlePlayerNameInput, singlePlayerTeamSelect, singlePlayerVideoInput, currentPlayerVideoFilename, savePlayerBtn, cancelPlayerEditBtn, showAddPlayerFormBtn;
-let playerListDisplayContainer, playersListTeam1Ul, playerListTeam1NameH3, noTeam1PlayersMessage, playersListTeam2Ul, playerListTeam2NameH3, noTeam2PlayersMessage, noPlayersOverallMessage;
+let playerFormContainer, playerFormTitle, singlePlayerForm, playerEditIdInput, singlePlayerNameInput, singlePlayerTeamSelect, singlePlayerPhoneInput, singlePlayerVideoInput, currentPlayerVideoFilename, savePlayerBtn, cancelPlayerEditBtn, showAddPlayerFormBtn;
+let playerListDisplayContainer, playersListTeam1Ul, playerListTeam1NameH3, noTeam1PlayersMessage, playersListTeam2Ul, playerListTeam2NameH3, noPlayersOverallMessage;
 let gameSubmissionOuterForm, labelTeam1Score, labelTeam2Score, gameLinkVideoInput, team1ScoreInput, team2ScoreInput;
 let goalscorerFormContainer, goalscorerFormTitle, goalscorerEditIdInput, singleGoalscorerPlayerSelect, singleGoalscorerGoalsInput, saveGoalscorerBtn, cancelGoalscorerEditBtn, showAddGoalscorerFormBtn, goalscorersListUl, noGoalscorersMessage;
 let downloadBtn;
@@ -57,11 +57,6 @@ function handleMatchTypeChange() {
 
     if (matchType === "other") {
         // For "Other", don't auto-generate. User can add manually.
-        // Consider if existing players should be cleared or kept. For now, let's keep them.
-        // If you want to clear:
-        // if (players.length > 0 && confirm("Changing to 'Other' will clear the player list. Continue?")) {
-        //     players = [];
-        // }
         updatePlayerOptionsInGoalscorerForm();
         renderPlayerList();
         return;
@@ -74,28 +69,28 @@ function handleMatchTypeChange() {
 
     if (numPlayersPerTeam > 0) {
         let proceedWithGeneration = true;
-        // Only ask to clear if there are non-placeholder (manually added/edited) players
         if (players.some(p => !p.isPlaceholder) && players.length > 0) {
              proceedWithGeneration = confirm(`Changing match type to ${matchType} will reset the player list and remove any manually added/edited players. Are you sure?`);
-        } else if (players.length > 0) { // If only placeholders exist, or list is empty, just proceed
-            // No confirmation needed, or a different one if desired
+        } else if (players.length > 0) { 
+            // No confirmation needed if only placeholders exist or list is empty
         }
-
 
         if (proceedWithGeneration) {
             players = []; // Clear existing players
             for (let i = 1; i <= numPlayersPerTeam; i++) {
                 players.push({
                     id: generateId(), name: `A${i}`, team: 'team1',
+                    phoneNumber: "", // Initialize phone number
                     videoFile: null, videoFileName: null, isPlaceholder: true
                 });
                 players.push({
                     id: generateId(), name: `B${i}`, team: 'team2',
+                    phoneNumber: "", // Initialize phone number
                     videoFile: null, videoFileName: null, isPlaceholder: true
                 });
             }
         }
-    } else if (players.length > 0 && matchType !== "other") { // If match type becomes invalid for auto-generation
+    } else if (players.length > 0 && matchType !== "other") { 
         if (confirm("This match type doesn't auto-generate players. Clear existing player list?")) {
             players = [];
         }
@@ -103,7 +98,6 @@ function handleMatchTypeChange() {
 
     renderPlayerList();
     updatePlayerOptionsInGoalscorerForm();
-    // If the player editor form was open for a player who no longer exists (due to list reset), hide it.
     if (currentlyEditingPlayerId && !players.find(p => p.id === currentlyEditingPlayerId)) {
         hidePlayerForm();
     }
@@ -153,12 +147,13 @@ function initializePlayerSetup() {
 }
 
 function handleShowAddPlayerForm() {
-    if (!playerFormContainer || !playerFormTitle || !singlePlayerForm || !playerEditIdInput || !singlePlayerNameInput || !singlePlayerTeamSelect || !currentPlayerVideoFilename || !showAddPlayerFormBtn) {
+    if (!playerFormContainer || !playerFormTitle || !singlePlayerForm || !playerEditIdInput || !singlePlayerNameInput || !singlePlayerTeamSelect || !singlePlayerPhoneInput || !currentPlayerVideoFilename || !showAddPlayerFormBtn) {
         console.error("Player form display elements missing."); return;
     }
     currentlyEditingPlayerId = null;
     playerFormTitle.textContent = "Add New Player";
     singlePlayerForm.reset(); 
+    singlePlayerPhoneInput.value = ""; // Clear phone input
     currentPlayerVideoFilename.textContent = "None";
     playerEditIdInput.value = "";
     populateTeamSelect(singlePlayerTeamSelect, team1NameInput.value || "Team A", team2NameInput.value || "Team B");
@@ -168,12 +163,13 @@ function handleShowAddPlayerForm() {
 }
 
 function hidePlayerForm() {
-    if (!playerFormContainer || !showAddPlayerFormBtn || !singlePlayerForm || !playerEditIdInput || !currentPlayerVideoFilename) {
+    if (!playerFormContainer || !showAddPlayerFormBtn || !singlePlayerForm || !playerEditIdInput || !singlePlayerPhoneInput || !currentPlayerVideoFilename) {
         console.error("Player form hide elements missing."); return;
     }
     playerFormContainer.style.display = 'none';
     showAddPlayerFormBtn.style.display = 'inline-block';
     singlePlayerForm.reset(); 
+    singlePlayerPhoneInput.value = ""; // Clear phone input
     currentlyEditingPlayerId = null;
     playerEditIdInput.value = "";
     currentPlayerVideoFilename.textContent = "None";
@@ -181,11 +177,12 @@ function hidePlayerForm() {
 
 function handleSavePlayer(event) {
     event.preventDefault();
-    if (!singlePlayerNameInput || !singlePlayerTeamSelect || !singlePlayerVideoInput) {
+    if (!singlePlayerNameInput || !singlePlayerTeamSelect || !singlePlayerPhoneInput || !singlePlayerVideoInput) {
          console.error("Player save form elements missing."); return;
     }
     const playerName = singlePlayerNameInput.value.trim();
     const playerTeam = singlePlayerTeamSelect.value;
+    const playerPhone = singlePlayerPhoneInput.value.trim();
     const newlySelectedVideoFile = singlePlayerVideoInput.files[0]; 
 
     if (!playerName || !playerTeam) {
@@ -197,6 +194,7 @@ function handleSavePlayer(event) {
         if (playerIndex > -1) {
             players[playerIndex].name = playerName;
             players[playerIndex].team = playerTeam;
+            players[playerIndex].phoneNumber = playerPhone; // Save phone number
             players[playerIndex].isPlaceholder = false; // Mark as customized
 
             if (newlySelectedVideoFile) { // User selected a new file during this edit
@@ -208,6 +206,7 @@ function handleSavePlayer(event) {
     } else { // Adding a brand new player
         const newPlayer = {
             id: generateId(), name: playerName, team: playerTeam,
+            phoneNumber: playerPhone, // Save phone number
             videoFile: newlySelectedVideoFile || null,
             videoFileName: newlySelectedVideoFile ? newlySelectedVideoFile.name : null,
             isPlaceholder: false
@@ -230,6 +229,7 @@ function createPlayerListItem(player, targetUl) {
 
     const nameSpan = document.createElement('span');
     let videoIndicator = player.videoFileName ? ` (Video: ${player.videoFileName.substring(0,10)}${player.videoFileName.length > 10 ? '...' : ''})` : "";
+    // Phone number is not displayed in the list item for privacy/brevity, but it's saved.
     nameSpan.textContent = `${player.name}${videoIndicator}`;
     
     const actionsDiv = document.createElement('div');
@@ -292,7 +292,7 @@ function renderPlayerList() {
 function loadPlayerForEdit(playerId) {
     const player = players.find(p => p.id === playerId);
     if (!player) return;
-    if (!playerFormContainer || !playerFormTitle || !singlePlayerForm || !playerEditIdInput || !singlePlayerNameInput || !singlePlayerTeamSelect || !singlePlayerVideoInput || !currentPlayerVideoFilename || !showAddPlayerFormBtn) {
+    if (!playerFormContainer || !playerFormTitle || !singlePlayerForm || !playerEditIdInput || !singlePlayerNameInput || !singlePlayerTeamSelect || !singlePlayerPhoneInput || !singlePlayerVideoInput || !currentPlayerVideoFilename || !showAddPlayerFormBtn) {
         console.error("Elements for loading player to edit are missing."); return;
     }
 
@@ -301,6 +301,7 @@ function loadPlayerForEdit(playerId) {
     playerEditIdInput.value = playerId;
     singlePlayerNameInput.value = player.name;
     populateTeamSelect(singlePlayerTeamSelect, team1NameInput.value || "Team A", team2NameInput.value || "Team B", player.team);
+    singlePlayerPhoneInput.value = player.phoneNumber || ""; // Load phone number
     
     singlePlayerVideoInput.value = ''; 
     currentPlayerVideoFilename.textContent = player.videoFileName || "None"; 
@@ -517,16 +518,20 @@ async function handleDownload() {
             videosFolder.file(uniqueVideoFilenameInZip, player.videoFile);
             videosAddedToFolder = true;
         }
-        return { player_id: player.id, player_name: player.name, 
-                 team_identifier: player.team, 
-                 team_name: player.team === 'team1' ? team1NameInput.value : team2NameInput.value, 
-                 video_360_filename: uniqueVideoFilenameInZip };
+        return { 
+            player_id: player.id, 
+            player_name: player.name, 
+            team_identifier: player.team, 
+            team_name: player.team === 'team1' ? team1NameInput.value : team2NameInput.value, 
+            phone_number: player.phoneNumber || "", // Add phone number to CSV data
+            video_360_filename: uniqueVideoFilenameInZip 
+        };
     });
-    zip.file("players.csv", convertToCSV(playersCsvData, ["player_id", "player_name", "team_identifier", "team_name", "video_360_filename"]));
-    if (!videosAddedToFolder && videosFolder && Object.keys(videosFolder.files).length === 0) { // Check if folder is truly empty
+    zip.file("players.csv", convertToCSV(playersCsvData, ["player_id", "player_name", "team_identifier", "team_name", "phone_number", "video_360_filename"])); // Add phone_number to CSV headers
+    
+    if (!videosAddedToFolder && videosFolder && Object.keys(videosFolder.files).length === 0) { 
         videosFolder.file("no_videos_uploaded.txt", "No 360 videos were uploaded for players."); 
     }
-
 
     if (gameLinkVideoInput.files[0]) {
         const gameVideoFile = gameLinkVideoInput.files[0];
@@ -575,6 +580,7 @@ document.addEventListener('DOMContentLoaded', () => {
     playerEditIdInput = document.getElementById('player-edit-id');
     singlePlayerNameInput = document.getElementById('single-player-name');
     singlePlayerTeamSelect = document.getElementById('single-player-team');
+    singlePlayerPhoneInput = document.getElementById('single-player-phone'); // Initialize phone input
     singlePlayerVideoInput = document.getElementById('single-player-video');
     currentPlayerVideoFilename = document.getElementById('current-player-video-filename');
     savePlayerBtn = document.getElementById('save-player-btn');
