@@ -148,41 +148,17 @@
                     </fieldset>
 
                     <fieldset>
-                        <legend>Goalscorers (Optional)</legend>
-                        
-                        <div id="goalscorer-form-container" class="form-editor-container" style="display: none;">
-                            <h3 id="goalscorer-form-title">Add New Goalscorer</h3>
-                            <input type="hidden" id="goalscorer-edit-id" value="">
-                            <div class="form-group">
-                                <label for="single-goalscorer-player">Player</label>
-                                <select id="single-goalscorer-player" required>
-                                    <option value="">Select Player</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="single-goalscorer-goals">Number of Goals</label>
-                                <input type="number" id="single-goalscorer-goals" min="1" value="1" required>
-                            </div>
-                            <div class="form-actions">
-                                <button type="button" id="save-goalscorer-btn" class="button-primary">Save Goalscorer</button>
-                                <button type="button" id="cancel-goalscorer-edit-btn" class="button-secondary">Cancel</button>
-                            </div>
+                        <legend>Goalscorer Details (Optional)</legend>
+                        <div id="detailed-goal-scorers-container">
+                            <!-- This will be populated by JavaScript -->
                         </div>
-
-                        <button type="button" id="show-add-goalscorer-form-btn" class="add-button">Add Goalscorer</button>
-
-                        <div id="goalscorer-list-container">
-                            <h3>Scored Goals</h3>
-                            <ul id="goalscorers-list-ul" class="item-list"></ul>
-                            <p id="no-goalscorers-message" style="display: none;">No goalscorers added yet.</p>
+                        <div id="goal-summary-display" style="margin-top: 20px; padding-top:15px; border-top: 1px solid #eee;">
+                            <h4>Calculated Score from Details:</h4>
+                            <p><span id="summary-display-team1-name">Team A</span>: <strong id="summary-display-team1-calculated-score">0</strong></p>
+                            <p><span id="summary-display-team2-name">Team B</span>: <strong id="summary-display-team2-calculated-score">0</strong></p>
+                            <small>This helps verify against the Final Score entered above.</small>
                         </div>
                     </fieldset>
-
-                    <div class="form-group">
-                        <label for="game-link-video">Game Video</label>
-                        <input type="file" id="game-link-video" name="game-link-video" accept="video/*">
-                        <small>Upload the full game video. Max file size: 500MB (example)</small>
-                    </div>
                 </form>
             </section>
         </main>
