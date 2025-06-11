@@ -17,8 +17,19 @@ let summaryDisplayTeam2Name, summaryDisplayTeam2CalculatedScore;
 
 
 // --- Utility Functions ---
-function generateId() {
-    return '_' + Math.random().toString(36).substr(2, 9);
+function generateId(team) {
+    const teamPrefix = team === 'team1' ? 'A' : 'B';
+    const existingIds = players
+        .filter(p => p.team === team)
+        .map(p => p.id)
+        .filter(id => id.startsWith(teamPrefix));
+    
+    let nextNumber = 1;
+    while (existingIds.includes(`${teamPrefix}${String(nextNumber).padStart(2, '0')}`)) {
+        nextNumber++;
+    }
+    
+    return `${teamPrefix}${String(nextNumber).padStart(2, '0')}`;
 }
 
 // --- Tab Functionality ---
@@ -83,12 +94,12 @@ function handleMatchTypeChange() {
             players = []; // Clear existing players
             for (let i = 1; i <= numPlayersPerTeam; i++) {
                 players.push({
-                    id: generateId(), name: `A${i}`, team: 'team1',
+                    id: generateId('team1'), name: `A${i}`, team: 'team1',
                     phoneNumber: "", videoFile: null, videoFileName: null, isPlaceholder: true,
                     goalsScored: 0, ownGoalsScored: 0
                 });
                 players.push({
-                    id: generateId(), name: `B${i}`, team: 'team2',
+                    id: generateId('team2'), name: `B${i}`, team: 'team2',
                     phoneNumber: "", videoFile: null, videoFileName: null, isPlaceholder: true,
                     goalsScored: 0, ownGoalsScored: 0
                 });
@@ -214,7 +225,7 @@ function handleSavePlayer(event) {
         }
     } else {
         const newPlayer = {
-            id: generateId(), name: playerName, team: playerTeam,
+            id: generateId(playerTeam), name: playerName, team: playerTeam,
             phoneNumber: playerPhone,
             videoFile: newlySelectedVideoFile || null,
             videoFileName: newlySelectedVideoFile ? newlySelectedVideoFile.name : null,
