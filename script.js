@@ -205,6 +205,11 @@ function handleSavePlayer(event) {
     const playerPhone = singlePlayerPhoneInput.value.trim();
     const newlySelectedVideoFile = singlePlayerVideoInput.files[0];
 
+    if (playerPhone && !/^\d{10}$/.test(playerPhone)) {
+        alert("Phone number must be exactly 10 digits.");
+        return;
+    }
+
     if (!playerName || !playerTeam) {
         alert("Player Name and Team are required."); return;
     }
