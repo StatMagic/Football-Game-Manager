@@ -19,17 +19,18 @@ let summaryDisplayTeam2Name, summaryDisplayTeam2CalculatedScore;
 // --- Utility Functions ---
 function generateId(team) {
     const teamPrefix = team === 'team1' ? 'A' : 'B';
-    const existingIds = players
-        .filter(p => p.team === team)
-        .map(p => p.id)
-        .filter(id => id.startsWith(teamPrefix));
     
-    let nextNumber = 1;
-    while (existingIds.includes(`${teamPrefix}${String(nextNumber).padStart(2, '0')}`)) {
-        nextNumber++;
-    }
+    // Generate a random 3-digit number (100-999)
+    let uniqueNumber;
+    let newId;
     
-    return `${teamPrefix}${String(nextNumber).padStart(2, '0')}`;
+    // Keep generating until we find a unique ID
+    do {
+        uniqueNumber = Math.floor(Math.random() * 900) + 100; // Random number between 100-999
+        newId = `${teamPrefix}${uniqueNumber}`;
+    } while (players.some(p => p.id === newId));
+    
+    return newId;
 }
 
 // --- Tab Functionality ---
@@ -217,14 +218,23 @@ function handleSavePlayer(event) {
     if (currentlyEditingPlayerId) {
         const playerIndex = players.findIndex(p => p.id === currentlyEditingPlayerId);
         if (playerIndex > -1) {
-            players[playerIndex].name = playerName;
-            players[playerIndex].team = playerTeam;
-            players[playerIndex].phoneNumber = playerPhone;
-            players[playerIndex].isPlaceholder = false;
+            const currentPlayer = players[playerIndex];
+            
+            // If team changed, update the ID prefix while keeping the unique number
+            if (currentPlayer.team !== playerTeam) {
+                const uniqueNumber = currentPlayer.id.substring(1); // Get the 3-digit number
+                const newTeamPrefix = playerTeam === 'team1' ? 'A' : 'B';
+                currentPlayer.id = `${newTeamPrefix}${uniqueNumber}`;
+            }
+            
+            currentPlayer.name = playerName;
+            currentPlayer.team = playerTeam;
+            currentPlayer.phoneNumber = playerPhone;
+            currentPlayer.isPlaceholder = false;
 
             if (newlySelectedVideoFile) {
-                players[playerIndex].videoFile = newlySelectedVideoFile;
-                players[playerIndex].videoFileName = newlySelectedVideoFile.name;
+                currentPlayer.videoFile = newlySelectedVideoFile;
+                currentPlayer.videoFileName = newlySelectedVideoFile.name;
             }
             // Goal counts (goalsScored, ownGoalsScored) are preserved for existing players
         }
