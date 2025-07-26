@@ -15,6 +15,8 @@ let detailedGoalScorersContainer;
 let summaryDisplayTeam1Name, summaryDisplayTeam1CalculatedScore;
 let summaryDisplayTeam2Name, summaryDisplayTeam2CalculatedScore;
 
+// Edit Match UI
+let zipUploadInput;
 
 // --- Utility Functions ---
 function generateId(team) {
@@ -33,6 +35,153 @@ function generateId(team) {
     return newId;
 }
 
+// --- CSV Parsing Utility ---
+function parseCSV(text) {
+    if (!text || text.trim() === "" || text.trim().startsWith("No specific goal")) return [];
+    
+    // Split into lines, ensuring cross-platform compatibility
+    const lines = text.trim().split(/\r?\n/);
+    if (lines.length < 1) return [];
+    
+    // Extract headers and sanitize them
+    const header = lines[0].split(',').map(h => h.trim());
+    
+    // Process rows
+    const rows = lines.slice(1).map(line => {
+        // This is a simplified CSV parser. It assumes values do not contain commas.
+        // Based on the generation logic, this should be safe.
+        const values = line.split(',');
+        const obj = {};
+        header.forEach((h, i) => {
+            let value = values[i] ? values[i].trim() : '';
+            // Un-quote strings if they are quoted
+            if (value.startsWith('"') && value.endsWith('"')) {
+                value = value.substring(1, value.length - 1);
+            }
+            obj[h] = value;
+        });
+        return obj;
+    });
+    return rows;
+}
+
+function clearAllMatchData() {
+    // Reset global data stores
+    players = [];
+    currentlyEditingPlayerId = null;
+
+    // Reset all form inputs to their default state
+    if (gameSetupForm) gameSetupForm.reset();
+    if (singlePlayerForm) singlePlayerForm.reset();
+    if (gameSubmissionOuterForm) gameSubmissionOuterForm.reset();
+    
+    // Clear any dynamic content
+    renderPlayerList(); // This will clear the player lists
+    renderDetailedGoalscorersTable(); // This will clear the goal scorers table
+    updateGoalSummaryDisplay(); // This will reset the score summary
+
+    // Hide any forms that might be visible
+    hidePlayerForm();
+}
+
+
+async function handleZipUpload(event) {
+    const file = event.target.files[0];
+    if (!file) {
+        return;
+    }
+
+    // First, clear all existing data
+    clearAllMatchData();
+
+    try {
+        const jszip = new JSZip();
+        const zip = await jszip.loadAsync(file);
+
+        // 1. Load game_details.csv
+        const gameDetailsContent = await zip.file("game_details.csv").async("string");
+        const gameDetailsData = parseCSV(gameDetailsContent)[0];
+        
+        if (gameDetailsData) {
+            matchCategoryInput.value = gameDetailsData.match_category || '';
+            matchDateInput.value = gameDetailsData.match_date || '';
+            matchTypeSelect.value = gameDetailsData.match_type || '5v5';
+            matchDurationInput.value = gameDetailsData.match_duration_minutes || '0';
+            team1NameInput.value = gameDetailsData.team1_name || 'Team A';
+            team2NameInput.value = gameDetailsData.team2_name || 'Team B';
+            ageCategorySelect.value = gameDetailsData.average_age_category || '';
+            team1ScoreInput.value = gameDetailsData.team1_score || '0';
+            team2ScoreInput.value = gameDetailsData.team2_score || '0';
+        }
+
+        // 2. Load players.csv
+        const playersContent = await zip.file("players.csv").async("string");
+        const playersData = parseCSV(playersContent);
+        
+        // 3. Load goalscorers.csv
+        const goalscorersContent = await zip.file("goalscorers.csv").async("string");
+        const goalscorersData = parseCSV(goalscorersContent);
+        
+        // 4. Process video files
+        const videosFolder = zip.folder("player_360_videos");
+        const videoFilePromises = [];
+        if (videosFolder) {
+            videosFolder.forEach((relativePath, zipEntry) => {
+                if (!zipEntry.dir) {
+                    videoFilePromises.push(
+                        zipEntry.async("blob").then(blob => ({
+                            name: zipEntry.name,
+                            blob: blob
+                        }))
+                    );
+                }
+            });
+        }
+        const videoFiles = await Promise.all(videoFilePromises);
+        
+        // Combine player, goal, and video data
+        players = playersData.map(playerRow => {
+            const goals = goalscorersData.find(g => g.player_id === playerRow.player_id);
+            const videoFileNameInZip = playerRow.video_360_filename;
+            let videoFile = null;
+            
+            if (videoFileNameInZip) {
+                const videoData = videoFiles.find(v => v.name.endsWith(videoFileNameInZip));
+                if (videoData) {
+                    videoFile = new File([videoData.blob], videoFileNameInZip, { type: videoData.blob.type });
+                }
+            }
+            
+            return {
+                id: playerRow.player_id,
+                name: playerRow.player_name,
+                team: playerRow.team_identifier,
+                phoneNumber: playerRow.phone_number || "",
+                isPlaceholder: false,
+                goalsScored: goals ? parseInt(goals.goals_for_own_team, 10) : 0,
+                ownGoalsScored: goals ? parseInt(goals.own_goals_for_opponent, 10) : 0,
+                videoFile: videoFile,
+                videoFileName: videoFile ? videoFile.name : null
+            };
+        });
+        
+        // Re-render all UI components with the loaded data
+        renderPlayerList();
+        renderDetailedGoalscorersTable();
+        updateGoalSummaryDisplay();
+        updateTeamNamesInOtherTabs();
+        
+        alert("Match data loaded successfully! You can now edit the details.");
+        
+        // Switch to the first tab to show the loaded data
+        openTab(null, 'game-setup', true);
+
+    } catch (error) {
+        console.error("Error loading or parsing zip file:", error);
+        alert("There was an error reading the zip file. Please ensure it's a valid match file created by this tool.");
+    }
+}
+
 // --- Tab Functionality ---
 function initializeTabs() {
     if (!tabButtons || tabButtons.length === 0) return;
@@ -47,6 +196,30 @@ function initializeTabs() {
             }
         });
     });
+}
+
+function openTab(evt, tabName, force = false) {
+    // Declare all variables used in this function
+    let i, tabcontent, tablinks;
+    tabcontent = document.getElementsByClassName("tab-content");
+    for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].classList.remove('active');
+    }
+    tablinks = document.getElementsByClassName("tab-button");
+    for (i = 0; i < tablinks.length; i++) {
+        tablinks[i].classList.remove('active');
+    }
+    document.getElementById(tabName).classList.add('active');
+    
+    // If called programmatically (no event), find the corresponding button to activate
+    if (force && !evt) {
+        const correspondingButton = document.querySelector(`.tab-button[data-tab="${tabName}"]`);
+        if (correspondingButton) {
+            correspondingButton.classList.add('active');
+        }
+    } else if (evt) {
+        evt.currentTarget.classList.add('active');
+    }
 }
 
 // --- Game Setup Logic ---
@@ -136,6 +309,18 @@ function updateTeamNamesInApp() {
         renderDetailedGoalscorersTable();
         updateGoalSummaryDisplay();
     }
+}
+
+function updateTeamNamesInOtherTabs() {
+    const team1Name = team1NameInput ? (team1NameInput.value.trim() || "Team A") : "Team A";
+    const team2Name = team2NameInput ? (team2NameInput.value.trim() || "Team B") : "Team B";
+
+    if (playerListTeam1NameH3) playerListTeam1NameH3.textContent = `${team1Name} Players`;
+    if (playerListTeam2NameH3) playerListTeam2NameH3.textContent = `${team2Name} Players`;
+
+    renderPlayerList();
+    renderDetailedGoalscorersTable();
+    updateGoalSummaryDisplay();
 }
 
 function populateTeamSelect(selectElement, team1Name, team2Name, selectedValue = "") {
@@ -690,6 +875,33 @@ document.addEventListener('DOMContentLoaded', () => {
     summaryDisplayTeam1CalculatedScore = document.getElementById('summary-display-team1-calculated-score');
     summaryDisplayTeam2Name = document.getElementById('summary-display-team2-name');
     summaryDisplayTeam2CalculatedScore = document.getElementById('summary-display-team2-calculated-score');
+
+    // Edit match
+    zipUploadInput = document.getElementById('zip-upload-input');
+
+    // --- Attach Event Listeners ---
+    if(matchTypeSelect) matchTypeSelect.addEventListener('change', handleMatchTypeChange);
+    if(gameSetupForm) gameSetupForm.addEventListener('input', updateTeamNamesInOtherTabs);
+    if(savePlayerBtn) savePlayerBtn.addEventListener('click', handleSavePlayer);
+    if(cancelPlayerEditBtn) cancelPlayerEditBtn.addEventListener('click', hidePlayerForm);
+    if(showAddPlayerFormBtn) showAddPlayerFormBtn.addEventListener('click', handleShowAddPlayerForm);
+    if(team1ScoreInput) team1ScoreInput.addEventListener('input', updateGoalSummaryDisplay);
+    if(team2ScoreInput) team2ScoreInput.addEventListener('input', updateGoalSummaryDisplay);
+    if(downloadBtn) downloadBtn.addEventListener('click', handleDownload);
+    if (zipUploadInput) zipUploadInput.addEventListener('change', handleZipUpload);
+
+    // Attach tab button listeners
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            tabContents.forEach(content => content.classList.remove('active'));
+            button.classList.add('active');
+            const tabContentElement = document.getElementById(button.dataset.tab);
+            if (tabContentElement) {
+                tabContentElement.classList.add('active');
+            }
+        });
+    });
 
     initializeTabs();
     initializeGameSetup();
