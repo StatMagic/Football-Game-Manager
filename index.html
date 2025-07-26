@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Game Management Tool</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.5/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="script.js" defer></script>
 </head>
 <body>
@@ -19,6 +20,7 @@
             <button class="tab-button" data-tab="player-setup">2. Player Setup</button>
             <button class="tab-button" data-tab="game-submission">3. Game Submission</button>
             <button class="tab-button" data-tab="edit-match">Edit Match</button>
+            <button id="tournament-mode-btn" class="secondary-button">Tournament Mode</button>
         </nav>
 
         <main>
@@ -169,6 +171,27 @@
                 <div class="form-group">
                     <label for="zip-upload-input">Upload Match .zip File</label>
                     <input type="file" id="zip-upload-input" accept=".zip" style="display: block; margin-top: 10px;">
+                </div>
+            </div>
+
+            <div id="tournament-mode-section" class="tab-content" style="display: none;">
+                <h2>Tournament Bulk Upload</h2>
+                <div class="form-group">
+                    <label for="fixture-file-input">Upload Fixture List (.csv)</label>
+                    <input type="file" id="fixture-file-input" accept=".csv">
+                </div>
+                <div class="form-group">
+                    <label for="roster-file-input">Upload Roster List (.csv)</label>
+                    <input type="file" id="roster-file-input" accept=".csv">
+                </div>
+                <button id="load-tournament-btn" class="primary-button">Load Tournament Data</button>
+
+                <div id="fixture-selection-container" style="display: none; margin-top: 20px;">
+                    <h3>Select a Fixture</h3>
+                    <div class="form-group">
+                        <select id="fixture-select"></select>
+                    </div>
+                    <button id="load-fixture-btn" class="primary-button">Load Selected Game</button>
                 </div>
             </div>
 

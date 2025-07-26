@@ -18,6 +18,13 @@ let summaryDisplayTeam2Name, summaryDisplayTeam2CalculatedScore;
 // Edit Match UI
 let zipUploadInput;
 
+// Tournament Mode UI
+let tournamentModeBtn, tournamentModeSection, fixtureFileInput, rosterFileInput, loadTournamentBtn, fixtureSelectionContainer, fixtureSelect, loadFixtureBtn;
+let tournamentData = {
+    fixtures: [],
+    roster: []
+};
+
 // --- Utility Functions ---
 function generateId(team) {
     const teamPrefix = team === 'team1' ? 'A' : 'B';
@@ -37,31 +44,28 @@ function generateId(team) {
 
 // --- CSV Parsing Utility ---
 function parseCSV(text) {
-    if (!text || text.trim() === "" || text.trim().startsWith("No specific goal")) return [];
-    
-    // Split into lines, ensuring cross-platform compatibility
+    // Guard against empty or invalid input
+    if (!text || typeof text !== 'string' || text.trim() === "") return [];
+
     const lines = text.trim().split(/\r?\n/);
-    if (lines.length < 1) return [];
+    if (lines.length < 2) return []; // Must have at least a header and one data row
+
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
     
-    // Extract headers and sanitize them
-    const header = lines[0].split(',').map(h => h.trim());
-    
-    // Process rows
     const rows = lines.slice(1).map(line => {
-        // This is a simplified CSV parser. It assumes values do not contain commas.
-        // Based on the generation logic, this should be safe.
+        if (line.trim() === '') return null; // Skip empty lines
+        
         const values = line.split(',');
         const obj = {};
-        header.forEach((h, i) => {
-            let value = values[i] ? values[i].trim() : '';
-            // Un-quote strings if they are quoted
-            if (value.startsWith('"') && value.endsWith('"')) {
-                value = value.substring(1, value.length - 1);
-            }
-            obj[h] = value;
+        
+        headers.forEach((header, index) => {
+            const value = values[index] ? values[index].trim() : '';
+            obj[header] = value;
         });
+        
         return obj;
-    });
+    }).filter(row => row !== null);
+
     return rows;
 }
 
@@ -199,6 +203,18 @@ function initializeTabs() {
 }
 
 function openTab(evt, tabName, force = false) {
+    // When opening a regular tab, ensure the special tournament section is hidden
+    // and the main tabs are ready to be displayed.
+    if (tournamentModeSection) {
+        tournamentModeSection.style.display = 'none';
+    }
+    tabContents.forEach(content => {
+        // Reset inline display style so CSS classes can take control
+        if (content.id !== 'tournament-mode-section') {
+            content.style.display = "";
+        }
+    });
+
     // Declare all variables used in this function
     let i, tabcontent, tablinks;
     tabcontent = document.getElementsByClassName("tab-content");
@@ -220,6 +236,195 @@ function openTab(evt, tabName, force = false) {
     } else if (evt) {
         evt.currentTarget.classList.add('active');
     }
+}
+
+function toggleTournamentMode() {
+    // Hide all main tabs
+    tabContents.forEach(content => {
+        if (content.id !== 'tournament-mode-section') {
+            content.style.display = 'none';
+        }
+    });
+    // De-select all tab buttons
+    tabButtons.forEach(button => button.classList.remove('active'));
+    // Show the tournament mode section
+    tournamentModeSection.style.display = 'block';
+}
+
+async function handleTournamentUpload() {
+    const fixtureFile = fixtureFileInput.files[0];
+    const rosterFile = rosterFileInput.files[0];
+
+    if (!fixtureFile || !rosterFile) {
+        alert("Please upload both a fixture and a roster file.");
+        return;
+    }
+
+    // Use PapaParse to robustly parse the CSV files
+    const parseFile = (file) => {
+        return new Promise((resolve, reject) => {
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                transformHeader: header => header.trim().toLowerCase(),
+                complete: (results) => resolve(results.data),
+                error: (error) => reject(error)
+            });
+        });
+    };
+
+    try {
+        tournamentData.fixtures = await parseFile(fixtureFile);
+        tournamentData.roster = await parseFile(rosterFile);
+
+        if (tournamentData.fixtures.length === 0 || tournamentData.roster.length === 0) {
+            alert("One or both of the CSV files are empty or could not be read. Please check the files and try again.");
+            return;
+        }
+
+        // Populate the fixture dropdown
+        fixtureSelect.innerHTML = '<option value="">-- Select a Game --</option>';
+        tournamentData.fixtures.forEach(fixture => {
+            const gameNo = fixture['game no'];
+            const teamA = fixture['team a'];
+            const teamB = fixture['team b'];
+            if (gameNo && teamA && teamB) {
+                const option = document.createElement('option');
+                option.value = gameNo;
+                option.textContent = `Game ${gameNo}: ${teamA} vs ${teamB}`;
+                fixtureSelect.appendChild(option);
+            }
+        });
+
+        fixtureSelectionContainer.style.display = 'block';
+        alert("Tournament data loaded successfully. Please select a fixture to continue.");
+
+    } catch (error) {
+        console.error("Error parsing tournament files:", error);
+        alert("There was a critical error reading the tournament files. Please check that they are valid CSV files and see the console for details.");
+    }
+}
+
+function loadFixtureData() {
+    console.log("--- Starting Fixture Load ---");
+
+    const selectedGameNo = fixtureSelect.value;
+    if (!selectedGameNo) {
+        console.error("No game selected from the dropdown.");
+        alert("Please select a game from the list.");
+        return;
+    }
+    console.log("Selected Game No:", selectedGameNo);
+
+    const fixture = tournamentData.fixtures.find(f => f['game no'] === selectedGameNo);
+    if (!fixture) {
+        console.error("Fixture not found for Game No:", selectedGameNo);
+        console.log("Available fixtures:", tournamentData.fixtures);
+        alert("Selected fixture not found.");
+        return;
+    }
+    console.log("Found Fixture:", fixture);
+
+    // --- Populate Game Setup ---
+    matchCategoryInput.value = 'Tournament';
+    matchDateInput.value = new Date().toISOString().slice(0, 10);
+    matchTypeSelect.value = '10v10';
+    matchDurationInput.value = '90';
+
+    // Get original team names for display, but use lowercased versions for matching logic
+    const team1NameOriginal = fixture['team a'] ? fixture['team a'].trim() : '';
+    const team2NameOriginal = fixture['team b'] ? fixture['team b'].trim() : '';
+    const team1NameForMatch = team1NameOriginal.toLowerCase();
+    const team2NameForMatch = team2NameOriginal.toLowerCase();
+    
+    team1NameInput.value = team1NameOriginal;
+    team2NameInput.value = team2NameOriginal;
+    ageCategorySelect.value = '20-30';
+
+    // --- Group Roster by Team Name for Efficient Lookup ---
+    console.log("--- Building Roster Map ---");
+    const rosterByTeam = {};
+    if (!tournamentData.roster || tournamentData.roster.length === 0) {
+        console.error("Roster data is empty or not loaded.");
+    } else {
+        console.log("First 3 Roster Rows:", tournamentData.roster.slice(0, 3));
+    }
+
+    for (const p of tournamentData.roster) {
+        // Use lowercased team name as the key for case-insensitive matching
+        const team = p['team name'] ? p['team name'].trim().toLowerCase() : null;
+        if (team) {
+            if (!rosterByTeam[team]) {
+                rosterByTeam[team] = [];
+            }
+            rosterByTeam[team].push(p);
+        } else {
+            console.warn("Found a roster entry with no team name:", p);
+        }
+    }
+    console.log("Built Roster Map (first 5 teams):", Object.fromEntries(Object.entries(rosterByTeam).slice(0, 5)));
+
+    // --- Find Matching Rosters ---
+    console.log("--- Matching Fixture Teams to Roster Map ---");
+    const team1Roster = rosterByTeam[team1NameForMatch] || [];
+    const team2Roster = rosterByTeam[team2NameForMatch] || [];
+    console.log(`Lookup Result | Team 1 ("${team1NameOriginal}"): Found ${team1Roster.length} players.`);
+    console.log(`Lookup Result | Team 2 ("${team2NameOriginal}"): Found ${team2Roster.length} players.`);
+
+    if (team1Roster.length === 0 || team2Roster.length === 0) {
+        console.error("PLAYER LOADING FAILED. Triggering alert.");
+        const availableRosterTeams = Object.keys(rosterByTeam);
+        let alertMessage = "Player loading failed. This is due to a mismatch between the team names in your fixture and roster files.\n\n";
+        alertMessage += `The app is looking for these teams (case-insensitive):\n- Fixture Team 1: "${team1NameOriginal}"\n- Fixture Team 2: "${team2NameOriginal}"\n\n`;
+        alertMessage += `It found ${team1Roster.length} players for Team 1 and ${team2Roster.length} for Team 2.\n\n`;
+        if (availableRosterTeams.length > 0) {
+            alertMessage += `Please ensure the names above are an EXACT match with one of the following teams found in your roster's 'Team name' column (case is ignored):\n- ${availableRosterTeams.join('\n- ')}`;
+        } else {
+            alertMessage += "No teams could be found in your roster file. Please check that the 'Team name' column is correct and not empty.";
+        }
+        alert(alertMessage);
+        return;
+    }
+
+    // --- Populate Player Setup ---
+    console.log("Player loading successful. Populating player list.");
+    players = []; 
+    
+    team1Roster.forEach(player => {
+        players.push({
+            id: generateId('team1'),
+            name: player['name'] || '',                // Exact header: 'Name'
+            team: 'team1',
+            phoneNumber: player['contact no'] || "",  // Exact header: 'Contact No'
+            videoFile: null,
+            videoFileName: null,
+            isPlaceholder: false,
+            goalsScored: 0,
+            ownGoalsScored: 0
+        });
+    });
+
+    team2Roster.forEach(player => {
+        players.push({
+            id: generateId('team2'),
+            name: player['name'] || '',                // Exact header: 'Name'
+            team: 'team2',
+            phoneNumber: player['contact no'] || "",  // Exact header: 'Contact No'
+            videoFile: null,
+            videoFileName: null,
+            isPlaceholder: false,
+            goalsScored: 0,
+            ownGoalsScored: 0
+        });
+    });
+
+    // --- Switch to Game Setup Tab and Render ---
+    console.log("Rendering UI with new data.");
+    tournamentModeSection.style.display = 'none';
+    openTab(null, 'game-setup', true);
+    renderPlayerList();
+    updateTeamNamesInOtherTabs();
+    alert(`Game ${selectedGameNo} loaded. You can now proceed with the match.`);
 }
 
 // --- Game Setup Logic ---
@@ -879,6 +1084,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Edit match
     zipUploadInput = document.getElementById('zip-upload-input');
 
+    // Tournament Mode
+    tournamentModeBtn = document.getElementById('tournament-mode-btn');
+    tournamentModeSection = document.getElementById('tournament-mode-section');
+    fixtureFileInput = document.getElementById('fixture-file-input');
+    rosterFileInput = document.getElementById('roster-file-input');
+    loadTournamentBtn = document.getElementById('load-tournament-btn');
+    fixtureSelectionContainer = document.getElementById('fixture-selection-container');
+    fixtureSelect = document.getElementById('fixture-select');
+    loadFixtureBtn = document.getElementById('load-fixture-btn');
+
     // --- Attach Event Listeners ---
     if(matchTypeSelect) matchTypeSelect.addEventListener('change', handleMatchTypeChange);
     if(gameSetupForm) gameSetupForm.addEventListener('input', updateTeamNamesInOtherTabs);
@@ -889,6 +1104,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if(team2ScoreInput) team2ScoreInput.addEventListener('input', updateGoalSummaryDisplay);
     if(downloadBtn) downloadBtn.addEventListener('click', handleDownload);
     if (zipUploadInput) zipUploadInput.addEventListener('change', handleZipUpload);
+    if (tournamentModeBtn) tournamentModeBtn.addEventListener('click', toggleTournamentMode);
+    if (loadTournamentBtn) loadTournamentBtn.addEventListener('click', handleTournamentUpload);
+    if (loadFixtureBtn) loadFixtureBtn.addEventListener('click', loadFixtureData);
 
     // Attach tab button listeners
     tabButtons.forEach(button => {
